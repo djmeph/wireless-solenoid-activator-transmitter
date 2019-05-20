@@ -19,9 +19,22 @@ uint8_t button_state;
 int button_state_last = -1;
 int debounce = 0;
 const int debounce_time = 10;
+uint32_t id;
+int duration = 250;
+
+void button() {
+  button_state = digitalRead(INPUT_PIN);
+  if (button_state != button_state_last && millis() - debounce > debounce_time) {
+    button_state_last =  button_state;
+    debounce = millis();
+    if (button_state == LOW) {
+      sendMessage();
+    }
+  }
+}
 
 void sendMessage() {
-  poof["delay"] = 250;
+  poof["delay"] = duration;
   serializeJson(poof, poofStr);
   mesh.sendBroadcast(poofStr);
   Serial.printf("Sending message: %s\n", poofStr.c_str());
@@ -35,22 +48,30 @@ void receivedCallback( uint32_t from, String &msg ) {
   if (error) {
     return;
   }
-  String cmd = pongJSON["msg"];
-  if (cmd == "Pong!") {
+  if (pongJSON["nodeId"] == id && pongJSON["msg"] == "Pong!") {
     digitalWrite(OUTPUT_PIN, HIGH);
   }
 }
 
 void newConnectionCallback(uint32_t nodeId) {
   digitalWrite(OUTPUT_PIN, LOW);
+  id = nodeId;
+  ping["nodeId"] = id;
+  serializeJson(ping, pingStr);
   mesh.sendBroadcast(pingStr);
-  Serial.printf("--> startHere: New Connection, nodeId = %u\n", nodeId);
+  Serial.printf("--> startHere: New Connection %s\n", pingStr.c_str());
+  pingStr = "";
 }
 
 void changedConnectionCallback() {
-  digitalWrite(OUTPUT_PIN, LOW);
-  mesh.sendBroadcast(pingStr);
-  Serial.printf("Changed connections\n");
+  if (id) {
+    digitalWrite(OUTPUT_PIN, LOW);
+    ping["nodeId"] = id;
+    serializeJson(ping, pingStr);
+    mesh.sendBroadcast(pingStr);
+    Serial.printf("Changed connections %s\n", pingStr.c_str());
+    pingStr = "";
+  }
 }
 
 void nodeTimeAdjustedCallback(int32_t offset) {
@@ -69,23 +90,12 @@ void setup() {
   mesh.onChangedConnections(&changedConnectionCallback);
   mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
   poof["msg"] = "Poof!";
+  poof["delay"] = 0;
   ping["msg"] = "Ping!";
-  serializeJson(ping, pingStr);
 }
 
 void loop() {
   userScheduler.execute();
   mesh.update();
   button();
-}
-
-void button() {
-  button_state = digitalRead(INPUT_PIN);
-  if (button_state != button_state_last && millis() - debounce > debounce_time) {
-    button_state_last =  button_state;
-    debounce = millis();
-    if (button_state == LOW) {
-      sendMessage();
-    }
-  }
 }
