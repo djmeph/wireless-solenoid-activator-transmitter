@@ -1,23 +1,23 @@
 #include "painlessMesh.h"
 #include "mesh_credentials.h"
 
-Scheduler     userScheduler;
+Scheduler userScheduler;
 DynamicJsonDocument poof(1024);
 DynamicJsonDocument ping(1024);
 StaticJsonDocument<1024> pongJSON;
 String poofStr;
 String pingStr;
-painlessMesh  mesh;
+painlessMesh mesh;
 
 int INPUT_PIN = 0;
 int OUTPUT_PIN = 13;
+int ANALOG_IN = A0;
 
 uint8_t button_state;
 int button_state_last = -1;
 int debounce = 0;
 const int debounce_time = 10;
 uint32_t id;
-int duration = 250;
 
 void button() {
   button_state = digitalRead(INPUT_PIN);
@@ -31,7 +31,7 @@ void button() {
 }
 
 void sendMessage() {
-  poof["delay"] = duration;
+  poof["delay"] = map(analogRead(ANALOG_IN), 0, 1024, 100, 2000);
   serializeJson(poof, poofStr);
   mesh.sendBroadcast(poofStr);
   Serial.printf("Sending message: %s\n", poofStr.c_str());
@@ -79,6 +79,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(INPUT_PIN, INPUT_PULLUP);
   pinMode(OUTPUT_PIN, OUTPUT);
+  pinMode(ANALOG_IN, INPUT);
   mesh.setDebugMsgTypes( ERROR | STARTUP );
   mesh.init( MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT );
   mesh.setContainsRoot(true);
