@@ -1,8 +1,5 @@
 #include "painlessMesh.h"
-
-#define   MESH_PREFIX     "network"
-#define   MESH_PASSWORD   "password"
-#define   MESH_PORT       5555
+#include "mesh_credentials.h"
 
 Scheduler     userScheduler;
 DynamicJsonDocument poof(1024);
