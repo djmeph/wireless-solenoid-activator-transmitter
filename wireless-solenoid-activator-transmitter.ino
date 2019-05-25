@@ -18,6 +18,7 @@ int button_state_last = -1;
 int debounce = 0;
 const int debounce_time = 10;
 uint32_t id;
+int pot;
 
 void button() {
   button_state = digitalRead(INPUT_PIN);
@@ -31,7 +32,8 @@ void button() {
 }
 
 void sendMessage() {
-  poof["delay"] = map(analogRead(ANALOG_IN), 0, 1024, 100, 2000);
+  pot = analogRead(ANALOG_IN);
+  poof["delay"] = map(pot, 0, 1024, 100, 2000);
   serializeJson(poof, poofStr);
   mesh.sendBroadcast(poofStr);
   Serial.printf("Sending message: %s\n", poofStr.c_str());
